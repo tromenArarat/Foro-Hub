@@ -45,6 +45,4 @@ public class Topico {
         this.fecha=LocalDateTime.now();
 
     }
-
-
 }

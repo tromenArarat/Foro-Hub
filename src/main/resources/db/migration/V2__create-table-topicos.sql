@@ -4,7 +4,7 @@ CREATE TABLE topicos (
     autorx_id BIGINT NOT NULL,
     titulo VARCHAR(100) NOT NULL,
     mensaje VARCHAR(200) NOT NULL,
-    nombreCurso VARCHAR(14) NOT NULL UNIQUE,
+    nombre_curso VARCHAR(14) NOT NULL,
     status VARCHAR(100) NOT NULL,
     fecha DATETIME NOT NULL,
     PRIMARY KEY (id),

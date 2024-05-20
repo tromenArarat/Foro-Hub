@@ -1,19 +1,19 @@
 package com.example.demo.domain.topicos;
 
-import jakarta.validation.constraints.Future;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
-import java.time.LocalDateTime;
-
 public record DatosCrearTopico(
-        @NotNull
-        Long idTopico,
+        @NotNull(message = "Usuario es obligatorio")
         Long idUsuario,
+        @NotNull(message = "Título es obligatorio")
         String titulo,
+        @NotNull(message = "Mensaje es obligatorio")
         String mensaje,
+        @NotNull(message = "Nombre de curso es obligatorio")
         String nombreCurso,
-        Estado status,
-        @NotNull @Future
-        LocalDateTime fecha
+        @NotNull(message = "Estado de tópico es obligatorio")
+        @Valid
+        Estado status
 ) {
 }
