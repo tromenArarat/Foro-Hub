@@ -5,6 +5,7 @@ import com.example.demo.domain.usuarios.UsuarioRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,6 +18,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/topicos")
@@ -31,6 +33,11 @@ public class TopicoController {
 
     @PostMapping
     @Transactional
+    @Operation(
+            summary = "Crea un tópico",
+            description = "Requiere autor, título...",
+            tags = {"post"}
+    )
     public ResponseEntity crear(@RequestBody @Valid DatosCrearTopico datos,
                                 UriComponentsBuilder uriComponentsBuilder){
         var response = crudTopicoService.crear(datos);
@@ -40,84 +47,31 @@ public class TopicoController {
 
     }
 
-    /*
-
-   Registro de un nuevo tópico
-
-    La API debe contar con un endpoint (punto final) para el registro de
-    tópicos, y debe aceptar solicitudes del tipo POST para la URI /tópicos.
-
-    Los datos del tópico (título, mensaje, autor y curso) deben ser enviados
-    en el cuerpo de la solicitud, en formato JSON.
-
-        → No olvides utilizar la anotación @RequestBody para que tu
-        proyecto Spring reciba correctamente los datos del cuerpo de
-        la solicitud.
-
-        → Además, recuerda que el tópico debe ser guardado en la base
-        de datos construida para el proyecto, así que aquí tienes el
-        recordatorio de utilizar el método save del JpaRepository para
-        realizar la persistencia de los datos del tópico creado.
-
-    Sugerencia: para ayudar en la validación de los datos, intenta
-    utilizar la anotación Java integrada en Spring @Valid.
-
-    Reglas de negocio
-    - Todos los campos son obligatorios, por lo tanto, es necesario
-    verificar si todos los campos se están ingresando correctamente.
-    - La API no debe permitir el registro de tópicos duplicados (con
-    el mismo título y mensaje).
-
-    MODELO A SEGUIR
-    @PostMapping
-    public ResponseEntity<DatosRespuestaMedico> registrarMedico(@RequestBody @Valid DatosRegistroMedico datosRegistroMedico,
-                                                                UriComponentsBuilder uriComponentsBuilder) {
-        Medico medico = medicoRepository.save(new Medico(datosRegistroMedico));
-        DatosDireccion direccion = new DatosDireccion(
-                datosRegistroMedico.direccion().calle(),
-                datosRegistroMedico.direccion().numero(),
-                datosRegistroMedico.direccion().complemento(),
-                datosRegistroMedico.direccion().ciudad()
-        );
-        DatosRespuestaMedico datosRespuestaMedico = new DatosRespuestaMedico(
-                medico.getId(),
-                medico.getNombre(),
-                medico.getEmail(),
-                medico.getTelefono(),
-                medico.getEspecialidad().toString(),
-                direccion
-        );
-        //URI url = "http..."+ medico.getId();
-        URI url = uriComponentsBuilder.path("/medicos/{id}").buildAndExpand(medico.getId()).toUri();
-        return ResponseEntity.created(url).body(datosRespuestaMedico);
-    }
-     */
-
-    @GetMapping("/topicos")
+    @GetMapping
     @Operation(
             summary = "Devuelve todos los tópicos",
             description = "Trae todos los tópicos de la base de datos ordenados por fecha.",
-            tags = {"topico", "get"}
+            tags = {"get"}
     )
     public ResponseEntity<Page<DatosListadoTopico>> listar(@PageableDefault(size=10, sort = "fecha", direction = Sort.Direction.ASC) Pageable paginacion) {
         return ResponseEntity.ok(topicoRepository.findAll(paginacion).map(DatosListadoTopico::new));
     }
 
-    @GetMapping("/topicos/filtrar")
+    @GetMapping("/filtrar")
     @Operation(
             summary = "Devuelve todos los tópicos ordenados por curso",
             description = "Trae todos los tópicos de la base de datos ordenados por curso.",
-            tags = {"topico", "get"}
+            tags = {"get"}
     )
     public ResponseEntity<Page<DatosListadoTopico>> listarPorNombreDeCurso(@PageableDefault(size=10, sort = "nombreCurso", direction = Sort.Direction.ASC) Pageable paginacion) {
         return ResponseEntity.ok(topicoRepository.findAll(paginacion).map(DatosListadoTopico::new));
     }
 
-    @GetMapping("/topicos/filtrar2")
+    @GetMapping("/filtrar2")
     @Operation(
             summary = "Devuelve todos los tópicos ordenados por año",
             description = "Trae todos los tópicos de la base de datos ordenados por curso.",
-            tags = {"topico", "get"}
+            tags = {"get"}
     )
     public ResponseEntity<Page<DatosListadoTopico>> listarPorAnio(
             @RequestParam int year,
@@ -126,38 +80,68 @@ public class TopicoController {
         Page<DatosListadoTopico> datosListadoTopicos = topicos.map(DatosListadoTopico::new);
         return ResponseEntity.ok(datosListadoTopicos);
     }
-    /*
-    @GetMapping("/{id}")
-    public ResponseEntity<DatosRespuestaMedico> retornaDatosMedico(@PathVariable Long id){
-        Medico medico = medicoRepository.getReferenceById(id);
-        var datosMedico = new DatosRespuestaMedico(
-                medico.getId(),
-                medico.getNombre(),
-                medico.getEmail(),
-                medico.getTelefono(),
-                medico.getEspecialidad().toString(),
-                new DatosDireccion(
-                        medico.getDireccion().getCalle(),
-                        medico.getDireccion().getNumero(),
-                        medico.getDireccion().getComplemento(),
-                        medico.getDireccion().getCiudad()
 
-                ));
-        return ResponseEntity.ok(datosMedico);
+    @GetMapping("/{id}")
+    @Operation(
+            summary = "Devuelve un tópico por id",
+            description = "Trae el tópico indicado.",
+            tags = {"getById"}
+    )
+    public ResponseEntity<DatosRespuestaTopico> retornaDatosTopico(@PathVariable Long id){
+        Topico topico = topicoRepository.getReferenceById(id);
+        if(topico!=null){
+            throw new ValidationException("Id de tópico no existe en la base de datos.");
+        }
+        var datosTopico = new DatosRespuestaTopico(
+                topico.getId(),
+                topico.getTitulo(),
+                topico.getMensaje(),
+                topico.getStatus(),
+                topico.getAutorx().getUsername(),
+                topico.getNombreCurso(),
+                topico.getFecha());
+        return ResponseEntity.ok(datosTopico);
     }
 
-    @DeleteMapping
+    @PutMapping
     @Transactional
     @Operation(
-            summary = "cancela una consulta de la agenda",
-            description = "requiere motivo",
-            tags = {"consulta","delete"}
+            summary = "Actualiza un tópico",
+            description = "Permite actualizar título, mensaje y/o nombre del curso",
+            tags = {"put"}
     )
-    public ResponseEntity eliminar(@RequestBody @Valid DatosCancelamientoConsulta datos) {
-        agendaConsultaService.cancelar(datos);
-        var consulta = repository.getReferenceById(datos.idConsulta());
-        consulta.cancelar(datos.motivo());
+    public ResponseEntity actualizarTopico(@RequestBody @Valid DatosActualizarTopico datosActualizarTopico){
+        Boolean topico = Optional.of(topicoRepository.getReferenceById(datosActualizarTopico.id())).isPresent();
+        if(!topico){
+            throw new ValidationException("El id del tópico no existe en la base de datos");
+        }
+        Topico topic = topicoRepository.getReferenceById(datosActualizarTopico.id());
+        topic.actualizarDatos(datosActualizarTopico);
+        return ResponseEntity.ok(
+                new DatosRespuestaTopico(
+                        topic.getId(),
+                        topic.getTitulo(),
+                        topic.getMensaje(),
+                        topic.getStatus(),
+                        topic.getAutorx().getUsername(),
+                        topic.getNombreCurso(),
+                        topic.getFecha()
+                )
+        );
+    }
+
+    @DeleteMapping("/delete/{id}")
+    @Transactional
+    @Operation(
+            summary = "Cancela un tópico",
+            tags = {"delete"}
+    )
+    public ResponseEntity eliminar(@PathVariable Long id){
+        Topico topico = topicoRepository.getReferenceById(id);
+        if(topico!=null){
+            throw new ValidationException("Id de tópico no existe en la base de datos.");
+        }
+        topicoRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
-     */
 }
